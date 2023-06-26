@@ -110,3 +110,9 @@ fmt.Printf("%q", "Hi\n")
 ```
 output: Hi\n
 ```
+
+
+### Q) Golang 에서 ASCLL를 어떻게 다루나요?
+### A) GOlang에서는 ASCLL를 byte 타입으로 다룬다.
+golang에서는 ASCLL를 byte 타입으로 다룹니다.
+그렇기에 byte 타입으로 ASCLL를 다루면 됩니다.

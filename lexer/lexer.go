@@ -7,6 +7,10 @@ import (
 /*
 	Lexer란
 	소스코드를 입력받고 소스코드를 표현하는 토큰 열을 반환하는 행위를 맡은 놈을 뜻한다.
+
+	여기서 중요한 점은
+	그냥 어휘 분석만 한다는 점이다. 에러가 나든 안 나든 lexer는 그냥 토큰화 시키는 것 뿐이다.
+	에러 확인은 파서가 확인한다.
 */
 
 /*
@@ -65,7 +69,14 @@ func (l *Lexer) NextToken() token.Token {
 
 	switch l.ch {
 	case '=':
-		tok = newToken(token.ASSIGN, l.ch)
+		if l.peekChar() == '=' {
+			ch := l.ch
+			l.readChar()
+			literal := string(ch) + string(l.ch)
+			tok = token.Token{Type: token.EQ, Literal: literal}
+		} else {
+			tok = newToken(token.ASSIGN, l.ch)
+		}
 	case ';':
 		tok = newToken(token.SEMICOLON, l.ch)
 	case '(':
@@ -80,6 +91,25 @@ func (l *Lexer) NextToken() token.Token {
 		tok = newToken(token.LBRACE, l.ch)
 	case '}':
 		tok = newToken(token.RBRACE, l.ch)
+	case '-':
+		tok = newToken(token.MINUS, l.ch)
+	case '!':
+		if l.peekChar() == '=' {
+			ch := l.ch
+			l.readChar()
+			literal := string(ch) + string(l.ch)
+			tok = token.Token{Type: token.NOT_EQ, Literal: literal}
+		} else {
+			tok = newToken(token.BANG, l.ch)
+		}
+	case '*':
+		tok = newToken(token.ASTERISK, l.ch)
+	case '/':
+		tok = newToken(token.SLASH, l.ch)
+	case '>':
+		tok = newToken(token.GT, l.ch)
+	case '<':
+		tok = newToken(token.LT, l.ch)
 	case 0: // NULL || EOF
 		tok.Literal = ""
 		tok.Type = token.EOF
@@ -153,4 +183,14 @@ func (l *Lexer) readNumber() string {
 	}
 
 	return l.input[position:l.position]
+}
+
+// peekChar 메서드는 다음에 나올 문자열을 미리 볼수 있는 메서드이다.
+// 여기서 중요한 점은 readChar 함수와 다른 점은 lexer.position = lexer.readPostion; lexer.readPostion += 1 이 코드가 없다는 점이다.
+func (l *Lexer) peekChar() byte {
+	if l.readPosition >= len(l.input) {
+		return 0
+	} else {
+		return l.input[l.readPosition]
+	}
 }

@@ -1,6 +1,8 @@
 package lexer
 
-import "monkey-lang/token"
+import (
+	"monkey-lang/token"
+)
 
 /*
 	Lexer란
@@ -55,9 +57,11 @@ func (l *Lexer) readChar() {
 
 }
 
-// 현재 검사하고 있는 문자(lexer.ch)를 보고 이에 대응하는 토큰을 반환하는 함수이다.
+// 현재 검사하고 있는 문자(lexer.ch)를 보고 이에 대응하는 토큰을 반환하는 함수이다.(요놈이 주 함수이다.)
 func (l *Lexer) NextToken() token.Token {
 	var tok token.Token
+
+	l.skipWhitespace() // Monkey-lang에서는 여백을 필요로 하지 않기 때문에 여백을 SKIP 한다
 
 	switch l.ch {
 	case '=':
@@ -79,6 +83,19 @@ func (l *Lexer) NextToken() token.Token {
 	case 0: // NULL || EOF
 		tok.Literal = ""
 		tok.Type = token.EOF
+
+	default:
+		if isLetter(l.ch) { // 글자이면? (여기서 글자라는 것은 a ~ z, A ~ Z, _를 말한다. 즉, 식별자와 예약어가 여기에 해당된다.)
+			tok.Literal = l.readIdentifier() // 글자 읽기(이제 글자를 읽었으니, 이게 예약여 인지 식별자 인지 구분해야 한다.)
+			tok.Type = token.LookupIdent(tok.Literal)
+			return tok
+		} else if isDigit(l.ch) {
+			tok.Type = token.INT
+			tok.Literal = l.readNumber()
+			return tok
+		} else {
+			tok = newToken(token.ILLEGAL, l.ch)
+		}
 	}
 
 	l.readChar()
@@ -87,4 +104,53 @@ func (l *Lexer) NextToken() token.Token {
 
 func newToken(tokenType token.TokenType, ch byte) token.Token {
 	return token.Token{Type: tokenType, Literal: string(ch)}
+}
+
+/*
+isLetter 함수는 Export하지 않는다.
+
+이 함수는 매우 직관적이면서 중요하다.
+여기서 중요한 점은 _가 글자라고 인식하고 있다는 점이다.
+만약 우리가 #를 글자라고 인식해야 한다면 함수 내부 조건식에 추가해줘야 한다.
+*/
+func isLetter(ch byte) bool {
+	return 'a' <= ch && ch <= 'z' || 'A' <= ch && ch <= 'Z' || ch == '_'
+}
+
+func (l *Lexer) readIdentifier() string {
+	position := l.position
+	for isLetter(l.ch) {
+		l.readChar()
+	}
+
+	return l.input[position:l.position]
+}
+
+/*
+여백을 skip하는 함수
+WHY) 왜? 전체 코드를 가공하지 않고 skip하나?
+ANW) 인터프리터 이기 때문에, 컴파이러 같은 경우 가공을 시켜 하는 방법도 좋을 텐데 지금 만들고 있는 것은 인터프리터 이기 때문에 skip을 해야 한다.
+*/
+func (l *Lexer) skipWhitespace() {
+	for l.ch == ' ' || l.ch == '\t' || l.ch == '\n' || l.ch == '\r' {
+		l.readChar()
+	}
+}
+
+func isDigit(ch byte) bool {
+	return '0' <= ch && ch <= '9'
+}
+
+/*
+여기서 중요한 점은 진수 판별을 하지 않았다는 점이다. 만약 2진수, 8진수, 16진수를 지원하는 언어를 제작한다면
+이에 대응되는 알고리즘을 작성해야만 한다.
+*/
+func (l *Lexer) readNumber() string {
+	position := l.position
+
+	for isDigit(l.ch) {
+		l.readChar()
+	}
+
+	return l.input[position:l.position]
 }
